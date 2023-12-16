@@ -5,74 +5,69 @@
 //
 
 import SwiftUI
+import Combine
 
 fileprivate let minCircleSideLength = 50.0
 fileprivate let initialViewToRevealOpacity = 0.2
 
-// TODO: 2. make it work for a binding item
 // TODO: 3. also animate dismiss action
-// TODO: 4. remove prints :)
-struct CircularReveal<V>: ViewModifier where V: View {
+// TODO: 4. Add onDismiss parameter (because it exists in .fullScreenCover)
+// TODO: 5. remove prints :)
+struct CircularRevealBool<V>: ViewModifier where V: View {
     @Binding var isPresented: Bool
     var animationDuration: TimeInterval
     var viewToReveal: () -> V
     
-    @State private var viewToRevealOpacity: Double = initialViewToRevealOpacity
-    @State private var circleSize: CGFloat = minCircleSideLength
     @State private var tapLocation: CGPoint = .zero
-    
-    private let maxCircleSideLength = UIScreen.main.bounds.height * 2
     
     func body(content: Content) -> some View {
         content
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0)
-                    .onChanged({ dragValue in
-                        tapLocation = centerRelativeLocation(for: dragValue.location)
+                    .onEnded({ dragValue in
+                        tapLocation = dragValue.location.relativeToScreenCenter()
                     })
             )
             .onChange(of: isPresented) { newValue in
                 if newValue {
                     // Prevent default fullScreenCover animation
                     UIView.setAnimationsEnabled(false)
-                } else {
-                    reset()
                 }
             }
             .fullScreenCover(isPresented: $isPresented, content: {
                 viewToReveal()
-                    .onAppear {
-                        // Re-enable animations
-                        UIView.setAnimationsEnabled(true)
-                    }
-                    .opacity(viewToRevealOpacity)
-                    .animation(.easeOut(duration: animationDuration / 2), value: viewToRevealOpacity)
-                    .mask (
-                        Circle()
-                            .offset(tapLocation)
-                            .frame(width: circleSize, height: circleSize)
-                            .ignoresSafeArea()
-                            .animation(.easeIn(duration: animationDuration), value: circleSize)
-                            .onAppear() {
-                                self.circleSize = maxCircleSideLength
-                                self.viewToRevealOpacity = 1.0
-                            }
-                    )
-                    .background(ClearBackgroundView())
+                    .maskWithCircleAndAnimate(tapLocation: tapLocation,
+                                              animationDuration: animationDuration)
             })
     }
+}
+
+struct CircularRevealItem<V, ItemType>: ViewModifier where V: View, ItemType: Identifiable & Equatable {
+    @Binding var item: ItemType?
+    var animationDuration: TimeInterval
+    var viewToReveal: (ItemType) -> V
     
-    // TODO: Check if this function is being called too much and using susbtantial resources
-    private func centerRelativeLocation(for location: CGPoint) -> CGPoint {
-        let screenWidth = UIScreen.main.bounds.width
-        let screenHeight = UIScreen.main.bounds.height
-        return CGPoint(x: location.x - screenWidth / 2, y: location.y - screenHeight / 2)
-    }
+    @State private var tapLocation: CGPoint = .zero
     
-    /// Resets this view modifier to prepare for reuse
-    private func reset() {
-        self.circleSize = minCircleSideLength
-        self.viewToRevealOpacity = initialViewToRevealOpacity
+    func body(content: Content) -> some View {
+        content
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onEnded({ dragValue in
+                        tapLocation = dragValue.location.relativeToScreenCenter()
+                    })
+            )
+            .onChange(of: item) { newItem in
+                if newItem != nil {
+                    // Prevent default fullScreenCover animation
+                    UIView.setAnimationsEnabled(false)
+                }
+            }
+            .fullScreenCover(item: $item, content: { it in
+                viewToReveal(it)
+                    .maskWithCircleAndAnimate(tapLocation: tapLocation,
+                                              animationDuration: animationDuration)
+            })
     }
 }
 
@@ -80,24 +75,63 @@ public extension View {
     func circularReveal<Content>(isPresented: Binding<Bool>,
                                  animationDuration: TimeInterval = 0.3,
                                  @ViewBuilder content: @escaping () -> Content) -> some View where Content : View {
-        modifier(CircularReveal(isPresented: isPresented,
-                                animationDuration: animationDuration,
-                                viewToReveal: content))
+        modifier(CircularRevealBool(isPresented: isPresented,
+                                    animationDuration: animationDuration,
+                                    viewToReveal: content))
+    }
+    
+    func circularReveal<Item, Content>(item: Binding<Item?>,
+                                       animationDuration: TimeInterval = 0.3,
+                                       @ViewBuilder content: @escaping (Item) -> Content) -> some View where Content : View, Item: Identifiable & Equatable {
+        modifier(CircularRevealItem(item: item,
+                                    animationDuration: animationDuration,
+                                    viewToReveal: content))
     }
 }
 
-struct ClearBackgroundView: UIViewRepresentable {
-    func makeUIView(context: Context) -> UIView {
-        return InnerView()
+extension CGPoint {
+    // TODO: Check if this function is being called too much and using substantial resources
+    func relativeToScreenCenter() -> CGPoint {
+        let screenWidth = UIScreen.main.bounds.width
+        let screenHeight = UIScreen.main.bounds.height
+        return CGPoint(x: self.x - screenWidth / 2, y: self.y - screenHeight / 2)
     }
+}
+
+struct AnimateCircleMask: ViewModifier {
+    var tapLocation: CGPoint
+    var animationDuration: TimeInterval
     
-    func updateUIView(_ uiView: UIView, context: Context) {}
+    @State private var viewToRevealOpacity: Double = initialViewToRevealOpacity
+    @State private var circleSize: CGFloat = minCircleSideLength
     
-    private class InnerView: UIView {
-        override func didMoveToWindow() {
-            super.didMoveToWindow()
-            
-            superview?.superview?.backgroundColor = .clear
-        }
+    private let maxCircleSideLength = UIScreen.main.bounds.height * 2
+    
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                // Re-enable animations
+                UIView.setAnimationsEnabled(true)
+            }
+            .opacity(viewToRevealOpacity)
+            .animation(.easeOut(duration: animationDuration / 2), value: viewToRevealOpacity)
+            .mask (
+                Circle()
+                    .offset(tapLocation)
+                    .frame(width: circleSize, height: circleSize)
+                    .ignoresSafeArea()
+                    .animation(.easeIn(duration: animationDuration), value: circleSize)
+                    .onAppear() {
+                        self.circleSize = maxCircleSideLength
+                        self.viewToRevealOpacity = 1.0
+                    }
+            )
+            .background(ClearBackgroundView())
+    }
+}
+
+extension View {
+    func maskWithCircleAndAnimate(tapLocation: CGPoint, animationDuration: TimeInterval) -> some View {
+        modifier(AnimateCircleMask(tapLocation: tapLocation, animationDuration: animationDuration))
     }
 }

@@ -7,10 +7,6 @@
 import SwiftUI
 import Combine
 
-fileprivate let minCircleSideLength = 50.0
-fileprivate let initialViewToRevealOpacity = 0.2
-
-// TODO: 3. also animate dismiss action
 // TODO: 4. Add onDismiss parameter (because it exists in .fullScreenCover)
 // TODO: 5. remove prints :)
 struct CircularRevealBool<V>: ViewModifier where V: View {
@@ -19,6 +15,7 @@ struct CircularRevealBool<V>: ViewModifier where V: View {
     var viewToReveal: () -> V
     
     @State private var tapLocation: CGPoint = .zero
+    @State private var isPresentedCopy = false
     
     func body(content: Content) -> some View {
         content
@@ -28,16 +25,37 @@ struct CircularRevealBool<V>: ViewModifier where V: View {
                         tapLocation = dragValue.location.relativeToScreenCenter()
                     })
             )
-            .onChange(of: isPresented) { newValue in
-                if newValue {
-                    // Prevent default fullScreenCover animation
-                    UIView.setAnimationsEnabled(false)
+            .onAppear { isPresentedCopy = isPresented }
+            .onChange(of: isPresented) { revealing in
+                // Prevent default fullScreenCover animation
+                UIView.setAnimationsEnabled(false)
+                
+                if revealing {
+                    isPresentedCopy = true
+                } else {
+                    Task {
+                        // Wait for the dismiss animation
+                        try? await Task.sleep(for: .seconds(animationDuration))
+                        
+                        // Perform dismiss
+                        await MainActor.run {
+                            isPresentedCopy = false
+                        }
+                    }
                 }
             }
-            .fullScreenCover(isPresented: $isPresented, content: {
-                viewToReveal()
-                    .maskWithCircleAndAnimate(tapLocation: tapLocation,
-                                              animationDuration: animationDuration)
+            .fullScreenCover(isPresented: $isPresentedCopy, content: {
+                if isPresented {
+                    viewToReveal()
+                        .maskWithCircleAndAnimate(type: .expand,
+                                                  tapLocation: tapLocation,
+                                                  animationDuration: animationDuration)
+                } else {
+                    viewToReveal()
+                        .maskWithCircleAndAnimate(type: .shrink,
+                                                  tapLocation: tapLocation,
+                                                  animationDuration: animationDuration)
+                }
             })
     }
 }
@@ -48,6 +66,7 @@ struct CircularRevealItem<V, ItemType>: ViewModifier where V: View, ItemType: Id
     var viewToReveal: (ItemType) -> V
     
     @State private var tapLocation: CGPoint = .zero
+    @State private var itemCopy: ItemType? = nil
     
     func body(content: Content) -> some View {
         content
@@ -57,16 +76,37 @@ struct CircularRevealItem<V, ItemType>: ViewModifier where V: View, ItemType: Id
                         tapLocation = dragValue.location.relativeToScreenCenter()
                     })
             )
+            .onAppear { itemCopy = item }
             .onChange(of: item) { newItem in
+                // Prevent default fullScreenCover animation
+                UIView.setAnimationsEnabled(false)
+                
                 if newItem != nil {
-                    // Prevent default fullScreenCover animation
-                    UIView.setAnimationsEnabled(false)
+                    itemCopy = newItem
+                } else {
+                    Task {
+                        // Wait for the dismiss animation
+                        try? await Task.sleep(for: .seconds(animationDuration))
+                        
+                        // Perform dismiss
+                        await MainActor.run {
+                            itemCopy = nil
+                        }
+                    }
                 }
             }
-            .fullScreenCover(item: $item, content: { it in
-                viewToReveal(it)
-                    .maskWithCircleAndAnimate(tapLocation: tapLocation,
-                                              animationDuration: animationDuration)
+            .fullScreenCover(item: $itemCopy, content: { itemCopy in
+                if item != nil {
+                    viewToReveal(itemCopy)
+                        .maskWithCircleAndAnimate(type: .expand,
+                                                  tapLocation: tapLocation,
+                                                  animationDuration: animationDuration)
+                } else {
+                    viewToReveal(itemCopy)
+                        .maskWithCircleAndAnimate(type: .shrink,
+                                                  tapLocation: tapLocation,
+                                                  animationDuration: animationDuration)
+                }
             })
     }
 }
@@ -95,43 +135,5 @@ extension CGPoint {
         let screenWidth = UIScreen.main.bounds.width
         let screenHeight = UIScreen.main.bounds.height
         return CGPoint(x: self.x - screenWidth / 2, y: self.y - screenHeight / 2)
-    }
-}
-
-struct AnimateCircleMask: ViewModifier {
-    var tapLocation: CGPoint
-    var animationDuration: TimeInterval
-    
-    @State private var viewToRevealOpacity: Double = initialViewToRevealOpacity
-    @State private var circleSize: CGFloat = minCircleSideLength
-    
-    private let maxCircleSideLength = UIScreen.main.bounds.height * 2
-    
-    func body(content: Content) -> some View {
-        content
-            .onAppear {
-                // Re-enable animations
-                UIView.setAnimationsEnabled(true)
-            }
-            .opacity(viewToRevealOpacity)
-            .animation(.easeOut(duration: animationDuration / 2), value: viewToRevealOpacity)
-            .mask (
-                Circle()
-                    .offset(tapLocation)
-                    .frame(width: circleSize, height: circleSize)
-                    .ignoresSafeArea()
-                    .animation(.easeIn(duration: animationDuration), value: circleSize)
-                    .onAppear() {
-                        self.circleSize = maxCircleSideLength
-                        self.viewToRevealOpacity = 1.0
-                    }
-            )
-            .background(ClearBackgroundView())
-    }
-}
-
-extension View {
-    func maskWithCircleAndAnimate(tapLocation: CGPoint, animationDuration: TimeInterval) -> some View {
-        modifier(AnimateCircleMask(tapLocation: tapLocation, animationDuration: animationDuration))
     }
 }

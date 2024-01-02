@@ -7,11 +7,11 @@
 import SwiftUI
 import Combine
 
-// TODO: 4. Add onDismiss parameter (because it exists in .fullScreenCover)
 // TODO: 5. remove prints :)
 struct CircularRevealBool<V>: ViewModifier where V: View {
     @Binding var isPresented: Bool
     var animationDuration: TimeInterval
+    var onDismiss: (() -> Void)?
     var viewToReveal: () -> V
     
     @State private var tapLocation: CGPoint = .zero
@@ -40,6 +40,7 @@ struct CircularRevealBool<V>: ViewModifier where V: View {
                         // Perform dismiss
                         await MainActor.run {
                             isPresentedCopy = false
+                            onDismiss?()
                         }
                     }
                 }
@@ -63,6 +64,7 @@ struct CircularRevealBool<V>: ViewModifier where V: View {
 struct CircularRevealItem<V, ItemType>: ViewModifier where V: View, ItemType: Identifiable & Equatable {
     @Binding var item: ItemType?
     var animationDuration: TimeInterval
+    var onDismiss: (() -> Void)?
     var viewToReveal: (ItemType) -> V
     
     @State private var tapLocation: CGPoint = .zero
@@ -91,6 +93,7 @@ struct CircularRevealItem<V, ItemType>: ViewModifier where V: View, ItemType: Id
                         // Perform dismiss
                         await MainActor.run {
                             itemCopy = nil
+                            onDismiss?()
                         }
                     }
                 }
@@ -114,17 +117,21 @@ struct CircularRevealItem<V, ItemType>: ViewModifier where V: View, ItemType: Id
 public extension View {
     func circularReveal<Content>(isPresented: Binding<Bool>,
                                  animationDuration: TimeInterval = 0.3,
+                                 onDismiss: (() -> Void)? = nil,
                                  @ViewBuilder content: @escaping () -> Content) -> some View where Content : View {
         modifier(CircularRevealBool(isPresented: isPresented,
                                     animationDuration: animationDuration,
+                                    onDismiss: onDismiss,
                                     viewToReveal: content))
     }
     
     func circularReveal<Item, Content>(item: Binding<Item?>,
                                        animationDuration: TimeInterval = 0.3,
+                                       onDismiss: (() -> Void)? = nil,
                                        @ViewBuilder content: @escaping (Item) -> Content) -> some View where Content : View, Item: Identifiable & Equatable {
         modifier(CircularRevealItem(item: item,
                                     animationDuration: animationDuration,
+                                    onDismiss: onDismiss,
                                     viewToReveal: content))
     }
 }

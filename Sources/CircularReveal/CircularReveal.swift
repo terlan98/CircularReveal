@@ -7,15 +7,14 @@
 import SwiftUI
 import Combine
 
-// TODO: 5. remove prints :)
 struct CircularRevealBool<V>: ViewModifier where V: View {
-    @Binding var isPresented: Bool
+    @Binding var isRevealed: Bool
     var animationDuration: TimeInterval
     var onDismiss: (() -> Void)?
     var viewToReveal: () -> V
     
     @State private var tapLocation: CGPoint = .zero
-    @State private var isPresentedCopy = false
+    @State private var isRevealedCopy = false
     
     func body(content: Content) -> some View {
         content
@@ -25,13 +24,13 @@ struct CircularRevealBool<V>: ViewModifier where V: View {
                         tapLocation = dragValue.location.relativeToScreenCenter()
                     })
             )
-            .onAppear { isPresentedCopy = isPresented }
-            .onChange(of: isPresented) { revealing in
+            .onAppear { isRevealedCopy = isRevealed }
+            .onChange(of: isRevealed) { revealing in
                 // Prevent default fullScreenCover animation
                 UIView.setAnimationsEnabled(false)
                 
                 if revealing {
-                    isPresentedCopy = true
+                    isRevealedCopy = true
                 } else {
                     Task {
                         // Wait for the dismiss animation
@@ -39,14 +38,14 @@ struct CircularRevealBool<V>: ViewModifier where V: View {
                         
                         // Perform dismiss
                         await MainActor.run {
-                            isPresentedCopy = false
+                            isRevealedCopy = false
                             onDismiss?()
                         }
                     }
                 }
             }
-            .fullScreenCover(isPresented: $isPresentedCopy, content: {
-                if isPresented {
+            .fullScreenCover(isPresented: $isRevealedCopy, content: {
+                if isRevealed {
                     viewToReveal()
                         .maskWithCircleAndAnimate(type: .expand,
                                                   tapLocation: tapLocation,
@@ -115,11 +114,11 @@ struct CircularRevealItem<V, ItemType>: ViewModifier where V: View, ItemType: Id
 }
 
 public extension View {
-    func circularReveal<Content>(isPresented: Binding<Bool>,
+    func circularReveal<Content>(isRevealed: Binding<Bool>,
                                  animationDuration: TimeInterval = 0.3,
                                  onDismiss: (() -> Void)? = nil,
                                  @ViewBuilder content: @escaping () -> Content) -> some View where Content : View {
-        modifier(CircularRevealBool(isPresented: isPresented,
+        modifier(CircularRevealBool(isRevealed: isRevealed,
                                     animationDuration: animationDuration,
                                     onDismiss: onDismiss,
                                     viewToReveal: content))

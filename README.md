@@ -1,6 +1,6 @@
 
 # CircularReveal
-![ios](https://img.shields.io/badge/Supported_Platforms-iOS_16+-lightgray?style=for-the-badge&logo=apple)
+![ios](https://img.shields.io/badge/Platforms-iOS_16+-lightgray?style=for-the-badge&logo=apple)
 ![swiftui](https://img.shields.io/badge/MADE_WITH-SWIFTUI-0097FE?style=for-the-badge)
 ![spm](https://img.shields.io/badge/SwiftPM-compatible-brightgreen?style=for-the-badge&logo=swift)
 ![license](https://img.shields.io/github/license/terlan98/CircularSlider?style=for-the-badge)

@@ -8,7 +8,7 @@
 import SwiftUI
 
 fileprivate let minCircleSideLength = 50.0
-fileprivate let maxCircleSideLength = UIScreen.main.bounds.height * 2
+fileprivate let maxCircleSideLength = UIScreen.main.bounds.height * 2.25
 fileprivate let initialViewToRevealOpacity = 0.2
 
 struct CircularAnimationMask: ViewModifier {

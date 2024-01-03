@@ -14,7 +14,7 @@ A SwiftUI package for presenting views with a circular animation.
 ## 📦 Features
 - Trigger with a boolean or an arbitrary item
 - Set custom animation duration
-- Execute closure when the presented view is dismissed
+- Execute a closure when the presented view is dismissed
 
 ## 🛠 Installation
 You can install `CircularReveal` by going to your Project settings > Swift Packages and add the repository by providing the GitHub URL. Alternatively, you can go to File > Swift Packages > Add Package Dependencies...
@@ -59,7 +59,8 @@ struct SecondView: View {
 
 For more examples, check out [INSERT EXAMPLE FILE LINKS HERE]
 
-
+## 🤝 Contribution
+I highly appreciate and welcome any issue reports, feature requests, pull requests, or GitHub stars you may provide.
 
 # License
 CircularReveal is released under the MIT license. 

@@ -8,7 +8,7 @@
 A SwiftUI package for presenting views with a circular animation.
 
 <p align="center">
-<img width=40% src="https://github.com/terlan98/CircularReveal/assets/22798314/90c26fe1-37b2-4555-b66c-8689112ddac1">
+<img width=35% src="https://github.com/terlan98/CircularReveal/assets/22798314/90c26fe1-37b2-4555-b66c-8689112ddac1">
 </p>
 
 ## 📦 Features

@@ -57,7 +57,7 @@ struct SecondView: View {
 }
 ```
 
-For more examples, check out [INSERT EXAMPLE FILE LINKS HERE]
+For more examples, check out the [Examples](https://github.com/terlan98/CircularReveal/tree/main/Sources/Examples) folder
 
 ## 🤝 Contribution
 I highly appreciate and welcome any issue reports, feature requests, pull requests, or GitHub stars you may provide.

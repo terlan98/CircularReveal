@@ -114,6 +114,20 @@ struct CircularRevealItem<V, ItemType>: ViewModifier where V: View, ItemType: Id
 }
 
 public extension View {
+    /// Presents a modal view that covers the whole screen gradually
+    /// with a circular animation when binding to a Boolean value you 
+    /// provide is true.
+    ///
+    /// - Note: If you'd like the presented view to also be
+    /// dismissed with animation, make sure to pass the binding to it.
+    /// The view should set it to `false` in order to dismiss itself.
+    ///
+    /// - Parameters:
+    ///   - isRevealed: A binding to a Boolean value that determines whether
+    ///     to present the view.
+    ///   - animationDuration: The duration of the circular animation.
+    ///   - onDismiss: The closure to execute when dismissing the presented view.
+    ///   - content: A closure that returns the content that should be presented.
     func circularReveal<Content>(isRevealed: Binding<Bool>,
                                  animationDuration: TimeInterval = 0.3,
                                  onDismiss: (() -> Void)? = nil,
@@ -124,6 +138,20 @@ public extension View {
                                     viewToReveal: content))
     }
     
+    /// Presents a modal view that covers the whole screen gradually
+    /// with a circular animation using the binding you provide as a
+    /// data source for the view's content.
+    ///
+    /// - Note: If you'd like the presented view to also be
+    /// dismissed with animation, make sure to pass the binding to it.
+    /// The view should set it to `nil` in order to dismiss itself.
+    ///
+    /// - Parameters:
+    ///   - item: A binding to an optional source of truth that determines whether
+    ///     to present the view.
+    ///   - animationDuration: The duration of the circular animation.
+    ///   - onDismiss: The closure to execute when dismissing the presented view.
+    ///   - content: A closure that returns the content that should be presented.
     func circularReveal<Item, Content>(item: Binding<Item?>,
                                        animationDuration: TimeInterval = 0.3,
                                        onDismiss: (() -> Void)? = nil,
@@ -136,7 +164,6 @@ public extension View {
 }
 
 extension CGPoint {
-    // TODO: Check if this function is being called too much and using substantial resources
     func relativeToScreenCenter() -> CGPoint {
         let screenWidth = UIScreen.main.bounds.width
         let screenHeight = UIScreen.main.bounds.height

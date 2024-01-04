@@ -51,6 +51,10 @@ struct CircularAnimationMask: ViewModifier {
                 // Re-enable animations
                 UIView.setAnimationsEnabled(type == .expand)
             }
+            .onDisappear {
+                // Re-enable animations
+                UIView.setAnimationsEnabled(type == .shrink)
+            }
             .opacity(currentOpacity)
             .animation(opacityAnimation, value: currentOpacity)
             .mask (
